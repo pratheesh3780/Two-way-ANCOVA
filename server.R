@@ -40,15 +40,6 @@ server <- function(input, output, session) {
       return()
     } else {
       list(
-        selectInput(
-          "filerepli",
-          "Replication",
-          c(
-            Equal.replication = "equal",
-            Unequal.replication = "unequal"
-          ),
-          "equal"
-        ),
         numericInput(
           "trt",
           "Number of Treatments:",
@@ -60,6 +51,12 @@ server <- function(input, output, session) {
           "treatment",
           "Pick the name given 
           for `TREATMENT` column in your file",
+          choices = names(csvfile())
+        ),
+        radioButtons(
+          "repli",
+          "Pick the name given 
+          for `Replication` column in your file",
           choices = names(csvfile())
         ),
         radioButtons(
@@ -125,6 +122,33 @@ server <- function(input, output, session) {
       )
       validate(
         need(
+          input$treatment != input$repli,
+          "Warning 1: Both input variables
+               selected (Treatment and replication)
+               are same. Choose Treatment and
+               replication correctly for meaningful result"
+        )
+      )
+      validate(
+        need(
+          input$cov != input$repli,
+          "Warning 1: Both input variables
+               selected (covariate and replication)
+               are same. Choose covariate and
+               replication correctly for meaningful result"
+        )
+      )
+      validate(
+        need(
+          input$yield != input$repli,
+          "Warning 1: Both input variables
+               selected (yield and replication)
+               are same. Choose yield and
+               replication correctly for meaningful result"
+        )
+      )
+      validate(
+        need(
           input$treatment != input$cov,
           "Warning 1: Both input variables selected
                (Treatment and covariate) are same.
@@ -145,14 +169,16 @@ server <- function(input, output, session) {
       d <- as.data.frame(csvfile())
       t <- as.numeric(input$trt)
       response <- d[, input$yield]
+      replication <- d[, input$repli]
       treatment <- d[, input$treatment]
       covariate <- d[, input$cov]
       treatment <- factor(treatment)
-      anvaTable <- lm(response ~ covariate + treatment)
+      replication<- factor(replication)
+      anvaTable <- lm(response ~ covariate + treatment+replication)
       result <- as.data.frame(stats::anova(anvaTable))
       out <- agricolae::LSD.test(csvfile()[, input$yield],
                                  csvfile()[, input$treatment],
-                                 result[3, 1], result[3, 3])
+                                 result[4, 1], result[4, 3])
       trtmeans <- out$means
       trtmeans <-
         trtmeans[gtools::mixedsort(row.names(trtmeans)),]
@@ -185,21 +211,26 @@ server <- function(input, output, session) {
       validate(need(input$treatment != input$yield, ""))
       validate(need(input$treatment != input$cov, ""))
       validate(need(input$cov != input$yield, ""))
+      validate(need(input$treatment != input$repli,""))
+      validate(need(input$cov != input$repli,""))
+      validate(need(input$yield != input$repli,""))
       d <- as.data.frame(csvfile())
       t <- as.numeric(input$trt)
       response <- d[, input$yield]
+      replication <- d[, input$repli]
       treatment <- d[, input$treatment]
       covariate <- d[, input$cov]
       treatment <- factor(treatment)
-      anvaTable <- lm(response ~ covariate + treatment)
+      replication<- factor(replication)
+      anvaTable <- lm(response ~ covariate + treatment+replication)
       result <- as.data.frame(stats::anova(anvaTable))
-      SoV <- c("Covariate", "Treatment", "Error")
+      SoV <- c("Covariate", "Treatment","Replication", "Error")
       final <- cbind(SoV, result)
       final
     }
   },
   digits = 3,
-  caption = ("<b> ANOVA TABLE </b>"),
+  caption = ("<b> ANALYSIS OF COVARIANCE </b>"),
   bordered = TRUE,
   align = "c",
   caption.placement = getOption("xtable.caption.placement", "top"))
@@ -222,15 +253,17 @@ server <- function(input, output, session) {
       d <- as.data.frame(csvfile())
       t <- as.numeric(input$trt)
       response <- d[, input$yield]
+      replication <- d[, input$repli]
       treatment <- d[, input$treatment]
       covariate <- d[, input$cov]
       treatment <- factor(treatment)
-      anvaTable <- lm(response ~ covariate + treatment)
+      replication<- factor(replication)
+      anvaTable <- lm(response ~ covariate + treatment+replication)
       result <- as.data.frame(stats::anova(anvaTable))
       out <-
         agricolae::LSD.test(csvfile()[, input$yield], 
                             csvfile()[, input$treatment], 
-                            result[3, 1], result[3, 3])
+                            result[4, 1], result[4, 3])
       colnam <- c("MSE", "SE(d)", "SE(m)", "CV(%)")
       stat <- out$statistics
       repl <- out$means
@@ -268,10 +301,12 @@ server <- function(input, output, session) {
       d <- as.data.frame(csvfile())
       t <- as.numeric(input$trt)
       response <- d[, input$yield]
+      replication <- d[, input$repli]
       treatment <- d[, input$treatment]
       covariate <- d[, input$cov]
       treatment <- factor(treatment)
-      anvaTable <- lm(response ~ covariate + treatment)
+      replication<- factor(replication)
+      anvaTable <- lm(response ~ covariate + treatment+replication)
       result <- as.data.frame(stats::anova(anvaTable))
       if (result[2, 5] <= 0.05) {
         HTML(
@@ -302,10 +337,12 @@ server <- function(input, output, session) {
       d <- as.data.frame(csvfile())
       t <- as.numeric(input$trt)
       response <- d[, input$yield]
+      replication <- d[, input$repli]
       treatment <- d[, input$treatment]
       covariate <- d[, input$cov]
       treatment <- factor(treatment)
-      anvaTable <- lm(response ~ covariate + treatment)
+      replication<- factor(replication)
+      anvaTable <- lm(response ~ covariate + treatment+replication)
       result <- as.data.frame(stats::anova(anvaTable))
       if (result[2, 5] <= 0.05) {
         list(
@@ -340,7 +377,6 @@ server <- function(input, output, session) {
       return()
     }
     if (input$submit > 0) {
-      if (input$filerepli == "equal") {
         if (input$req == "lsd") {
           validate(need(input$treatment != input$yield, ""))
           validate(need(input$treatment != input$cov, ""))
@@ -348,14 +384,16 @@ server <- function(input, output, session) {
           d <- as.data.frame(csvfile())
           t <- as.numeric(input$trt)
           response <- d[, input$yield]
+          replication <- d[, input$repli]
           treatment <- d[, input$treatment]
           covariate <- d[, input$cov]
           treatment <- factor(treatment)
-          anvaTable <- lm(response ~ covariate + treatment)
+          replication<- factor(replication)
+          anvaTable <- lm(response ~ covariate + treatment+replication)
           result <- as.data.frame(stats::anova(anvaTable))
           if (result[2, 5] <= 0.05) {
             out <-
-              agricolae::LSD.test(d[, input$yield], d[, input$treatment], result[3, 1], result[3, 3])
+              agricolae::LSD.test(d[, input$yield], d[, input$treatment], result[4, 1], result[4, 3])
             out$statistics
           }
         } else if (input$req == "dmrt") {
@@ -365,18 +403,20 @@ server <- function(input, output, session) {
           d <- as.data.frame(csvfile())
           t <- as.numeric(input$trt)
           response <- d[, input$yield]
+          replication <- d[, input$repli]
           treatment <- d[, input$treatment]
           covariate <- d[, input$cov]
           treatment <- factor(treatment)
-          anvaTable <- lm(response ~ covariate + treatment)
+          replication<- factor(replication)
+          anvaTable <- lm(response ~ covariate + treatment+replication)
           result <- as.data.frame(stats::anova(anvaTable))
           if (result[2, 5] <= 0.05) {
             out <-
               agricolae::duncan.test(
                 d[, input$yield],
                 d[, input$treatment],
-                result[3, 1],
-                result[3, 3],
+                result[4, 1],
+                result[4, 3],
                 alpha = 0.05,
                 group = TRUE,
                 main = NULL,
@@ -391,18 +431,20 @@ server <- function(input, output, session) {
           d <- as.data.frame(csvfile())
           t <- as.numeric(input$trt)
           response <- d[, input$yield]
+          replication <- d[, input$repli]
           treatment <- d[, input$treatment]
           covariate <- d[, input$cov]
           treatment <- factor(treatment)
-          anvaTable <- lm(response ~ covariate + treatment)
+          replication<- factor(replication)
+          anvaTable <- lm(response ~ covariate + treatment+replication)
           result <- as.data.frame(stats::anova(anvaTable))
           if (result[2, 5] <= 0.05) {
             out <-
               agricolae::HSD.test(
                 d[, input$yield],
                 d[, input$treatment],
-                result[3, 1],
-                result[3, 3],
+                result[4, 1],
+                result[4, 3],
                 alpha = 0.05,
                 group = TRUE,
                 main = NULL,
@@ -412,26 +454,6 @@ server <- function(input, output, session) {
             out$statistics
           }
         }
-      } else if (input$filerepli == "unequal") {
-        if (input$req == "lsd") {
-          validate(need(input$treatment != input$yield, ""))
-          validate(need(input$treatment != input$cov, ""))
-          validate(need(input$cov != input$yield, ""))
-          d <- as.data.frame(csvfile())
-          t <- as.numeric(input$trt)
-          response <- d[, input$yield]
-          treatment <- d[, input$treatment]
-          covariate <- d[, input$cov]
-          treatment <- factor(treatment)
-          anvaTable <- lm(response ~ covariate + treatment)
-          result <- as.data.frame(stats::anova(anvaTable))
-          if (result[2, 5] <= 0.05) {
-            out <-
-              agricolae::LSD.test(d[, input$yield], d[, input$treatment], result[3, 1], result[3, 3])
-            out$statistics
-          }
-        }
-      }
     }
   },
   digits = 3,
@@ -440,71 +462,6 @@ server <- function(input, output, session) {
   align = "c",
   caption.placement = getOption("xtable.caption.placement", "bottom"))
   
-  ############################################# Matrix of CD in case of unequal replication
-  output$unequal <- renderTable({
-    if (is.null(input$file1$datapath)) {
-      return()
-    }
-    if (is.null(input$submit)) {
-      return()
-    }
-    if (is.null(input$req)) {
-      return()
-    }
-    if (is.null(input$filerepli)) {
-      return()
-    }
-    if (input$submit > 0) {
-      if (input$filerepli == "unequal") {
-        if (input$req == "lsd") {
-          validate(need(input$treatment != input$yield, ""))
-          validate(need(input$treatment != input$cov, ""))
-          validate(need(input$cov != input$yield, ""))
-          d <- as.data.frame(csvfile())
-          t <- as.numeric(input$trt)
-          response <- d[, input$yield]
-          treatment <- d[, input$treatment]
-          covariate <- d[, input$cov]
-          treatment <- factor(treatment)
-          anvaTable <- lm(response ~ covariate + treatment)
-          result <- as.data.frame(stats::anova(anvaTable))
-          count <-
-            table(d[, input$treatment]) # count the number of replications of treatment
-          t <- (result[2, 1] + 1) # no.of treatments
-          repli <- as.data.frame(count)
-          reciproc <- 1 / repli[, 2] # 1/ri
-          npw <- choose(t, 2) # number of pairwise combinations
-          sumres <-
-            as.vector(apply(combn(reciproc, 2), 2, sum)) # all pairwise sum of reciprocals (1/ri+1/rj)
-          ems <- as.vector(replicate(npw, (result[3, 3])))
-          SE_D <-
-            sqrt((ems * sumres)) # standard error of difference
-          tvalue <- qt(0.975, result[3, 1]) # tvalue
-          vect <- replicate(npw, tvalue) # vector of t value
-          CD <- vect * SE_D # critical difference
-          means <- aggregate(response, list(treatment), mean)
-          std <- aggregate(response, list(treatment), sd)
-          finalmean <- cbind(means, std[, 2])
-          rownames(finalmean) <- NULL
-          colnam <- c("Treatment", "mean", "std")
-          colnames(finalmean) <- colnam
-          b <- matrix(0, t, t)
-          b[upper.tri(b, diag = FALSE)] <- CD
-          b[lower.tri(b, diag = FALSE)] <- CD
-          name <- finalmean$Treatment
-          colnames(b) <- name
-          row.names(b) <- name
-          b
-        }
-      }
-    }
-  },
-  digits = 3,
-  rownames = TRUE,
-  caption = "Matrix of CD values",
-  bordered = TRUE,
-  align = "c",
-  caption.placement = getOption("xtable.caption.placement", "top"))
   
   
   ######################################### Treatment Grouping
@@ -520,20 +477,19 @@ server <- function(input, output, session) {
     }
     if (input$submit > 0) {
       if (input$req == "lsd") {
-        validate(need(input$treatment != input$yield, ""))
-        validate(need(input$treatment != input$cov, ""))
-        validate(need(input$cov != input$yield, ""))
         d <- as.data.frame(csvfile())
         t <- as.numeric(input$trt)
         response <- d[, input$yield]
+        replication <- d[, input$repli]
         treatment <- d[, input$treatment]
         covariate <- d[, input$cov]
         treatment <- factor(treatment)
-        anvaTable <- lm(response ~ covariate + treatment)
+        replication<- factor(replication)
+        anvaTable <- lm(response ~ covariate + treatment+replication)
         result <- as.data.frame(stats::anova(anvaTable))
         if (result[2, 5] <= 0.05) {
           out <-
-            agricolae::LSD.test(d[, input$yield], d[, input$treatment], result[3, 1], result[3, 3])
+            agricolae::LSD.test(d[, input$yield], d[, input$treatment], result[4, 1], result[4, 3])
           outgroup <- out$groups
           colnames(outgroup) <- c("trt_mean", "grouping")
           outgroup
@@ -545,18 +501,20 @@ server <- function(input, output, session) {
         d <- as.data.frame(csvfile())
         t <- as.numeric(input$trt)
         response <- d[, input$yield]
+        replication <- d[, input$repli]
         treatment <- d[, input$treatment]
         covariate <- d[, input$cov]
         treatment <- factor(treatment)
-        anvaTable <- lm(response ~ covariate + treatment)
+        replication<- factor(replication)
+        anvaTable <- lm(response ~ covariate + treatment+replication)
         result <- as.data.frame(stats::anova(anvaTable))
         if (result[2, 5] <= 0.05) {
           out <-
             agricolae::duncan.test(
               d[, input$yield],
               d[, input$treatment],
-              result[3, 1],
-              result[3, 3],
+              result[4, 1],
+              result[4, 3],
               alpha = 0.05,
               group = TRUE,
               main = NULL,
@@ -573,18 +531,20 @@ server <- function(input, output, session) {
         d <- as.data.frame(csvfile())
         t <- as.numeric(input$trt)
         response <- d[, input$yield]
+        replication <- d[, input$repli]
         treatment <- d[, input$treatment]
         covariate <- d[, input$cov]
         treatment <- factor(treatment)
-        anvaTable <- lm(response ~ covariate + treatment)
+        replication<- factor(replication)
+        anvaTable <- lm(response ~ covariate + treatment+replication)
         result <- as.data.frame(stats::anova(anvaTable))
         if (result[2, 5] <= 0.05) {
           out <-
             agricolae::HSD.test(
               d[, input$yield],
               d[, input$treatment],
-              result[3, 1],
-              result[3, 3],
+              result[4, 1],
+              result[4, 3],
               alpha = 0.05,
               group = TRUE,
               main = NULL,
@@ -974,14 +934,16 @@ server <- function(input, output, session) {
       d <- as.data.frame(csvfile())
       t <- as.numeric(input$trt)
       response <- d[, input$yield]
+      replication <- d[, input$repli]
       treatment <- d[, input$treatment]
       covariate <- d[, input$cov]
       treatment <- factor(treatment)
-      anvaTable <- lm(response ~ covariate + treatment)
+      replication<- factor(replication)
+      anvaTable <- lm(response ~ covariate + treatment+replication)
       result <- as.data.frame(stats::anova(anvaTable))
       out <- agricolae::LSD.test(csvfile()[, input$yield],
                                  csvfile()[, input$treatment],
-                                 result[3, 1], result[3, 3])
+                                 result[4, 1], result[4, 3])
       d1 <- out$means
       alpha <- 0.05
       t <- qt(alpha / 2, result[2, 1], lower.tail = FALSE) # tvalue

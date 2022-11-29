@@ -20,7 +20,7 @@ ui <- fluidPage(
   ),
 
   ########
-  titlePanel(tags$div(tags$b('one-way ANCOVA',style="color:#000000"))),
+  titlePanel(tags$div(tags$b('Two-way ANCOVA',style="color:#000000"))),
 
   sidebarPanel(
     fileInput("file1", "CSV File (upload in csv format)", accept=c("text/csv", "text/comma-separated-values,text/plain", ".csv")),
@@ -74,9 +74,6 @@ ui <- fluidPage(
                          tags$style(  type="text/css", "#multi th,td {border: medium solid #000000;text-align:center}"),
                          tags$style(  type="text/css", "#multi td {border: medium solid #000000;text-align:center}"),
 
-                         tableOutput('unequal'),
-                         tags$style(  type="text/css", "#unequal th,td {border: medium solid #000000;text-align:center}"),
-                         tags$style(  type="text/css", "#unequal td {border: medium solid #000000;text-align:center}"),
 
                          tableOutput('group'),
                          tags$style(  type="text/css", "#group th,td {border: medium solid #000000;text-align:center}"),
